@@ -58,7 +58,16 @@ for line in sys.stdin:
         sentence = text
     is_retry = "REMINDER" in text
 
-    if "needsread" in sentence:
+    if "stubbornread" in sentence:
+        # only complies after three reminders have piled up
+        if text.count("REMINDER") >= 3:
+            sys.stdout.write(json.dumps({"type": "assistant", "message": {"content": [
+                {"type": "tool_use", "name": "Read", "input": {"file_path": "x"}}]}}) + "\n")
+            sys.stdout.flush()
+            result({"status": "ok", "code": "finally_read = True"})
+        else:
+            result({"status": "ok", "code": "unread = True"})
+    elif "needsread" in sentence:
         # skips the Read on the first ask; reads when reminded
         if is_retry:
             sys.stdout.write(json.dumps({"type": "assistant", "message": {"content": [

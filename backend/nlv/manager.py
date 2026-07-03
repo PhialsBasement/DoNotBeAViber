@@ -134,7 +134,7 @@ class SessionManager:
         text = req
         respawn_left = 1
         json_retry_left = 1  # one silent retry on malformed output (spec s13)
-        read_retry_left = 1  # one silent retry when the model skipped the Read
+        read_retry_left = 4  # keep re-prompting until it actually reads
 
         while True:
             # send, with one respawn on a dead session
@@ -170,7 +170,7 @@ class SessionManager:
                 if file is not None and not _turn_used_read(turn.events):
                     if read_retry_left > 0:
                         read_retry_left -= 1
-                        text = req + READ_REMINDER
+                        text += READ_REMINDER  # cumulative — each retry escalates
                         continue
                     self._log("error", error="read_skipped", sentence=sentence, file=file)
                     raise ReadSkipped(

@@ -66,7 +66,11 @@ def main() -> int:
         r = m.translate("needsread please", "python", file="whatever.py", line=1)
         check("read enforced via retry", r == {"status": "ok", "code": "read = True"}, str(r))
 
-        # 5c. mandatory Read: never reads -> ReadSkipped
+        # 5b2. mandatory Read: stubborn model complies on the third reminder
+        r = m.translate("stubbornread please", "python", file="whatever.py", line=1)
+        check("read enforced via persistent retries", r["code"] == "finally_read = True", str(r))
+
+        # 5c. mandatory Read: never reads -> ReadSkipped (backstop after all retries)
         try:
             m.translate("neverread please", "python", file="whatever.py", line=1)
             check("read skipped raises", False, "no exception")
