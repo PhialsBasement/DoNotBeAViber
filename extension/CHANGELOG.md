@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.2.0
+
+- Sidebar settings panel: model list pulled live from your Claude Code install,
+  effort options adapt to what the selected model supports
+- Enter accepts, Esc discards (Tab still works); native accept toolbar always
+  visible on suggestions
+- Rejections log as `discard` events in the learning log
+- Marketplace listing linked to the GitHub repo
+
 ## 0.1.0
 
 Initial release.
