@@ -127,6 +127,8 @@ const COMMENT_PREFIX = {
   lua: "--", sql: "--", haskell: "--",
   clojure: ";;", lisp: ";;",
   erlang: "%", latex: "%",
+  asm: ";", nasm: ";", masm: ";", "asm-intel-x86-generic": ";", ini: ";",
+  "arm": "@",
 };
 
 /** @param {string} languageId */
