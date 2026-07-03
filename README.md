@@ -124,6 +124,7 @@ python harness.py                    # REPL: type sentences, see accepts/rejects
 python test_manager.py               # lifecycle (offline, free, fast)
 python test_server.py                # daemon protocol (offline, free, fast)
 python test_gate.py                  # adversarial gate suite (live, uses your claude)
+python test_accepts.py               # false-rejection sweep (live)
 python test_reread.py                # context freshness (live)
 
 # run the extension from source
@@ -134,8 +135,9 @@ python tools/build_vsix.py           # -> dist/
 ```
 
 Tuning the gate = editing the prompt in `backend/nlv/prompt.py`, then running
-`test_gate.py` to prove you didn't break the boundary (release bar: ≥95% of
-scope-bombs rejected, 100% of single units accepted).
+`test_gate.py` AND `test_accepts.py` to prove you moved the boundary and not
+just one side of it (release bar: ≥95% of scope-bombs rejected, 100% of
+legitimate single units accepted).
 
 ## Contributing
 

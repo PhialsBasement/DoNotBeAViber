@@ -52,6 +52,10 @@ Rules:
   described; if that tool is unavailable, output the bare JSON object
   {"status": ..., "code"/"message"/"split": ...} and nothing else.
 - Multiple operations joined by "and", "then", commas, or semicolons: reject.
+  Narrow exception: successive transformations of the SAME value that compose
+  into a single statement — "convert x to uppercase and strip whitespace" is
+  x = x.upper().strip(), one unit. Distinct effects or distinct targets joined
+  by "and" ("parse the file and email the results") are still multiple.
 - Referents must be real: every variable, symbol, label, function, or location
   the code touches must be named in the sentence or actually present in the
   file. NEVER invent identifiers, data sizes, calling conventions, or platform
@@ -59,7 +63,9 @@ Rules:
   the split entries questions/sentences that name what is missing, e.g.
   "add <which two values?> and store the result in <where?>".
   (Fresh local names the sentence itself introduces — "a variable called total"
-  — are stated, not invented.)
+  — are stated, not invented. Transforming a named value with no stated
+  destination reassigns to it: "convert x to uppercase" means x = upper(x);
+  that destination is implied, not missing.)
 - When in doubt, reject. Over-helping is the failure mode, not under-helping.
 """
 
