@@ -30,7 +30,7 @@ import sys
 import threading
 
 from nlv.log import JsonlLogger
-from nlv.manager import Cancelled, ManagerConfig, OverScope, SessionManager
+from nlv.manager import Cancelled, ManagerConfig, OverScope, ReadSkipped, SessionManager
 from nlv.protocol import ProtocolError
 from nlv.session import ClaudeNotFound, RequestTimeout, SessionError
 
@@ -106,6 +106,8 @@ def main() -> int:
             err(rid, "cancelled", str(e))
         except OverScope as e:
             err(rid, "over-scope", str(e))
+        except ReadSkipped as e:
+            err(rid, "no-read", str(e))
         except ClaudeNotFound as e:
             err(rid, "claude-not-found", str(e))
         except RequestTimeout as e:

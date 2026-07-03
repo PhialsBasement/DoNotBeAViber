@@ -24,6 +24,11 @@ JSON_REMINDER = (
     "schema. No prose, no fences."
 )
 
+READ_REMINDER = (
+    "\n\nREMINDER: You answered without reading the file. You MUST use the Read "
+    "tool on the file around the cursor before returning status ok."
+)
+
 
 class Cancelled(SessionError):
     pass
@@ -31,6 +36,19 @@ class Cancelled(SessionError):
 
 class OverScope(SessionError):
     pass
+
+
+class ReadSkipped(SessionError):
+    """Model returned ok for a file-backed request without ever reading the file."""
+
+
+def _turn_used_read(events: list) -> bool:
+    for ev in events:
+        if ev.get("type") == "assistant":
+            for block in ev.get("message", {}).get("content", []):
+                if block.get("type") == "tool_use" and block.get("name") == "Read":
+                    return True
+    return False
 
 
 @dataclass
@@ -115,8 +133,10 @@ class SessionManager:
         req = build_request(sentence, language_id, file=file, line=line, indent=indent)
         text = req
         respawn_left = 1
+        json_retry_left = 1  # one silent retry on malformed output (spec s13)
+        read_retry_left = 1  # one silent retry when the model skipped the Read
 
-        for parse_attempt in (1, 2):
+        while True:
             # send, with one respawn on a dead session
             while True:
                 session = self._ensure()
@@ -137,13 +157,25 @@ class SessionManager:
             try:
                 resp = parse_response(turn.result_event)
             except ProtocolError as e:
-                if parse_attempt == 1:
-                    text = req + JSON_REMINDER  # one silent retry
+                if json_retry_left > 0:
+                    json_retry_left -= 1
+                    text = req + JSON_REMINDER
                     continue
                 self._log("error", error="protocol", detail=str(e), sentence=sentence)
                 raise
 
             if resp["status"] == "ok":
+                # hard guarantee: an ok for a file-backed request that never
+                # actually read the file is refused, not trusted
+                if file is not None and not _turn_used_read(turn.events):
+                    if read_retry_left > 0:
+                        read_retry_left -= 1
+                        text = req + READ_REMINDER
+                        continue
+                    self._log("error", error="read_skipped", sentence=sentence, file=file)
+                    raise ReadSkipped(
+                        "the model answered without reading the file — response discarded; try again"
+                    )
                 n_lines = len(resp["code"].strip().splitlines())
                 if n_lines > self.config.max_lines:
                     self._log(
@@ -168,8 +200,6 @@ class SessionManager:
                 file=file,
             )
             return resp
-
-        raise AssertionError("unreachable")
 
     def list_models(self) -> list:
         """Ask the warm session which models this Claude Code install offers."""

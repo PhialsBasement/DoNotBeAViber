@@ -58,7 +58,18 @@ for line in sys.stdin:
         sentence = text
     is_retry = "REMINDER" in text
 
-    if "crashnow" in sentence:
+    if "needsread" in sentence:
+        # skips the Read on the first ask; reads when reminded
+        if is_retry:
+            sys.stdout.write(json.dumps({"type": "assistant", "message": {"content": [
+                {"type": "tool_use", "name": "Read", "input": {"file_path": "x"}}]}}) + "\n")
+            sys.stdout.flush()
+            result({"status": "ok", "code": "read = True"})
+        else:
+            result({"status": "ok", "code": "unread = True"})
+    elif "neverread" in sentence:
+        result({"status": "ok", "code": "unread = True"})
+    elif "crashnow" in sentence:
         sys.exit(1)
     elif "sleepy" in sentence:
         time.sleep(10)

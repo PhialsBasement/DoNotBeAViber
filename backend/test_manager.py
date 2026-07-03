@@ -13,7 +13,7 @@ import threading
 import time
 
 from nlv.log import JsonlLogger
-from nlv.manager import Cancelled, ManagerConfig, OverScope, SessionManager
+from nlv.manager import Cancelled, ManagerConfig, OverScope, ReadSkipped, SessionManager
 from nlv.protocol import ProtocolError
 from nlv.session import SessionError
 
@@ -61,6 +61,21 @@ def main() -> int:
             check("over-scope refused", False, "no exception")
         except OverScope:
             check("over-scope refused", True)
+
+        # 5b. mandatory Read: skipped once -> silent retry succeeds
+        r = m.translate("needsread please", "python", file="whatever.py", line=1)
+        check("read enforced via retry", r == {"status": "ok", "code": "read = True"}, str(r))
+
+        # 5c. mandatory Read: never reads -> ReadSkipped
+        try:
+            m.translate("neverread please", "python", file="whatever.py", line=1)
+            check("read skipped raises", False, "no exception")
+        except ReadSkipped:
+            check("read skipped raises", True)
+
+        # 5d. no file attached -> read not required
+        r = m.translate("neverread please", "python")
+        check("no file, read not required", r["status"] == "ok", str(r))
 
         # 6. crash -> one respawn -> crash again -> SessionError
         try:
