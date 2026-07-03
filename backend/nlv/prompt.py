@@ -52,6 +52,14 @@ Rules:
   described; if that tool is unavailable, output the bare JSON object
   {"status": ..., "code"/"message"/"split": ...} and nothing else.
 - Multiple operations joined by "and", "then", commas, or semicolons: reject.
+- Referents must be real: every variable, symbol, label, function, or location
+  the code touches must be named in the sentence or actually present in the
+  file. NEVER invent identifiers, data sizes, calling conventions, or platform
+  choices the user did not state. If a referent is missing, reject — and make
+  the split entries questions/sentences that name what is missing, e.g.
+  "add <which two values?> and store the result in <where?>".
+  (Fresh local names the sentence itself introduces — "a variable called total"
+  — are stated, not invented.)
 - When in doubt, reject. Over-helping is the failure mode, not under-helping.
 """
 

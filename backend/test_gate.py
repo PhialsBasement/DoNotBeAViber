@@ -11,6 +11,7 @@ Usage: python test_gate.py [--model sonnet] [--effort low]
 from __future__ import annotations
 
 import argparse
+import os
 import statistics
 import sys
 import time
@@ -35,7 +36,7 @@ MUST_REJECT = [
 MUST_ACCEPT = [
     "increment retry_count by one",
     "assign the sum of a and b to total",
-    "if the list is empty, return None",
+    "if the items list is empty, return None",
     "loop over the orders and sum their totals into revenue",
     "define a function called parse_date that takes a string and returns a datetime",
     "break out of the loop when count exceeds limit",
@@ -46,6 +47,18 @@ MUST_ACCEPT = [
 BORDERLINE = [  # informational only
     "convert the name to lowercase and strip whitespace",
     "open the file and read all lines into a list",
+]
+
+# referent rule: unbound referents in asm force invented symbols/ABI -> reject;
+# fully-specified sentences are one instruction -> accept
+ASM_MUST_REJECT = [
+    "sum the prices into a total",
+    "print hello world to the console",
+    "add the two numbers together",
+]
+ASM_MUST_ACCEPT = [
+    "add rax and rbx, keep the result in rax",
+    "increment the qword counter at retry_count",
 ]
 
 
@@ -66,10 +79,18 @@ def main() -> int:
     latencies: list[float] = []
     failures: list[str] = []
 
-    def run(sentence: str) -> str | None:
+    ctx_file = os.path.abspath("fixtures/gate_context.py")
+
+    def run(sentence: str, lang: str = "python", with_ctx: bool = False) -> str | None:
         t0 = time.monotonic()
         try:
-            turn = session.send(build_request(sentence, "python"))
+            turn = session.send(
+                build_request(
+                    sentence, lang,
+                    file=ctx_file if with_ctx else None,
+                    line=12 if with_ctx else None,
+                )
+            )
             resp = parse_response(turn.result_event)
         except (SessionError, ProtocolError) as e:
             print(f"  [ERROR] {sentence!r}: {e}")
@@ -91,10 +112,13 @@ def main() -> int:
                 failures.append(f"not rejected: {s!r} -> {status}")
             print(f"  [{mark}] {s}")
 
-        print("\nsingle units (must accept):")
+        # accepts run the way the extension runs: with a file for referents to
+        # bind to (the referent rule correctly bounces dangling "the list"-style
+        # references when there is no context at all)
+        print("\nsingle units (must accept, with file context):")
         accepted = 0
         for s in MUST_ACCEPT:
-            status = run(s)
+            status = run(s, with_ctx=True)
             mark = "PASS" if status == "ok" else "FAIL"
             if status == "ok":
                 accepted += 1
@@ -102,16 +126,38 @@ def main() -> int:
                 failures.append(f"not accepted: {s!r} -> {status}")
             print(f"  [{mark}] {s}")
 
+        print("\nasm referent rule (must reject):")
+        for s in ASM_MUST_REJECT:
+            status = run(s, "asm")
+            mark = "PASS" if status == "rejected" else "FAIL"
+            if status == "rejected":
+                rejected += 1
+            else:
+                failures.append(f"not rejected (asm): {s!r} -> {status}")
+            print(f"  [{mark}] {s}")
+
+        print("\nasm fully-specified (must accept):")
+        for s in ASM_MUST_ACCEPT:
+            status = run(s, "asm")
+            mark = "PASS" if status == "ok" else "FAIL"
+            if status == "ok":
+                accepted += 1
+            else:
+                failures.append(f"not accepted (asm): {s!r} -> {status}")
+            print(f"  [{mark}] {s}")
+
         print("\nborderline (informational):")
         for s in BORDERLINE:
             print(f"  [{run(s)}] {s}")
 
-        reject_rate = rejected / len(MUST_REJECT)
-        accept_rate = accepted / len(MUST_ACCEPT)
+        reject_rate = rejected / (len(MUST_REJECT) + len(ASM_MUST_REJECT))
+        accept_rate = accepted / (len(MUST_ACCEPT) + len(ASM_MUST_ACCEPT))
         lat = sorted(latencies)
+        n_rej = len(MUST_REJECT) + len(ASM_MUST_REJECT)
+        n_acc = len(MUST_ACCEPT) + len(ASM_MUST_ACCEPT)
         print(
-            f"\nreject rate {rejected}/{len(MUST_REJECT)} ({reject_rate:.0%})  "
-            f"accept rate {accepted}/{len(MUST_ACCEPT)} ({accept_rate:.0%})"
+            f"\nreject rate {rejected}/{n_rej} ({reject_rate:.0%})  "
+            f"accept rate {accepted}/{n_acc} ({accept_rate:.0%})"
         )
         print(
             f"latency ms: p50 {statistics.median(lat):.0f}  "
