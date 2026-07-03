@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0
+
+- Gate hardened: referents must be real — the model can no longer invent
+  variable names, symbols, data sizes, or platform choices your sentence and
+  file don't contain; rejections now ask for the missing piece by name
+- Gate balanced the other way: implied destinations ("convert x to uppercase"
+  reassigns x) and same-value transformation chains count as one unit —
+  verified by a new 20-sentence false-rejection sweep alongside the
+  adversarial suite
+- Correct comment syntax for assembly languages on accept
+
 ## 0.2.0
 
 - Sidebar settings panel: model list pulled live from your Claude Code install,
