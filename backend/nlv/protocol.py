@@ -108,6 +108,20 @@ def parse_response(result_event: dict) -> dict:
         answer = payload.get("answer")
         if not isinstance(answer, str) or not answer.strip():
             raise ProtocolError("status=answered but 'answer' missing/empty", json.dumps(payload))
+        # defense: model occasionally nests its whole JSON answer inside `answer`
+        stripped = answer.strip()
+        if stripped.startswith("{") and '"status"' in stripped:
+            try:
+                inner = json.loads(stripped)
+                if (
+                    isinstance(inner, dict)
+                    and inner.get("status") == "answered"
+                    and isinstance(inner.get("answer"), str)
+                    and inner["answer"].strip()
+                ):
+                    answer = inner["answer"]
+            except json.JSONDecodeError:
+                pass
         return {"status": "answered", "answer": answer}
     if status == "refused":
         message = payload.get("message")
