@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.0
+
+- Ask mode (Ctrl+Alt+Q): conceptual questions about code get short plain-language
+  answers — construct semantics, differences between constructs, which of YOUR
+  candidate constructs matches your stated intent, why a line errors. Questions
+  that delegate the thinking (solutions, next steps, design choices, disguised
+  translation requests) are refused. Asks are recorded in the learning log.
+
 ## 0.4.0
 
 - Mandatory Read: an ok answer for a file-backed request is never accepted

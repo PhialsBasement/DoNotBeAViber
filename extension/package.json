@@ -2,7 +2,7 @@
   "name": "dont-be-a-viber",
   "displayName": "Don't Be a Viber",
   "description": "Don't vibe. Speed. One sentence in, at most one logical unit of code out — via your own Claude Code install. The thinking stays yours.",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "publisher": "Phiality",
   "license": "MIT",
   "repository": {
