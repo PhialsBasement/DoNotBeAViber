@@ -273,6 +273,49 @@ async function translateLine(context) {
   await vscode.commands.executeCommand("editor.action.inlineSuggest.trigger");
 }
 
+/** Comprehension questions — gated model-side so it explains, never solves.
+ * @param {vscode.ExtensionContext} context */
+async function askQuestion(context) {
+  const editor = vscode.window.activeTextEditor;
+  const preset =
+    editor && !editor.selection.isEmpty ? editor.document.getText(editor.selection) : "";
+  const question = await vscode.window.showInputBox({
+    title: "NLV: ask about code — it explains constructs, it won't solve your problem",
+    value: preset,
+    placeHolder: "e.g. will all(not c.isspace() for c in text[i+1:]) do the job, or any()?",
+    ignoreFocusOut: true,
+  });
+  if (!question || !question.trim()) return;
+
+  let d;
+  try {
+    d = getDaemon(context);
+  } catch (e) {
+    vscode.window.showErrorMessage(`NLV: ${e.message}`);
+    return;
+  }
+  const isFile = editor && editor.document.uri.scheme === "file";
+  if (isFile && editor.document.isDirty) await editor.document.save();
+  setStatus("NLV thinking…", true);
+  try {
+    const res = await d.request("ask", {
+      question: question.trim(),
+      languageId: editor ? editor.document.languageId : "plaintext",
+      file: isFile ? editor.document.uri.fsPath : null,
+      line: editor ? editor.selection.active.line + 1 : null,
+    });
+    setStatus("NLV", false);
+    if (res.status === "answered") {
+      vscode.window.showInformationMessage(`NLV: ${res.answer}`);
+    } else {
+      vscode.window.showWarningMessage(`NLV: ${res.message}`);
+    }
+  } catch (e) {
+    setStatus("NLV", false);
+    showError(e);
+  }
+}
+
 /** @param {Error & {code?: string}} e */
 function showError(e) {
   const code = e.code || "internal";
@@ -537,6 +580,8 @@ function activate(context) {
     statusBar,
 
     vscode.commands.registerCommand("nlv.translateLine", () => translateLine(context)),
+
+    vscode.commands.registerCommand("nlv.ask", () => askQuestion(context)),
 
     vscode.commands.registerCommand("nlv.restartSession", async () => {
       if (daemon && !daemon.dead) {

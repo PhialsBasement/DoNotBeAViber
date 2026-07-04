@@ -54,6 +54,10 @@
         "title": "NLV: Translate Current Line"
       },
       {
+        "command": "nlv.ask",
+        "title": "NLV: Ask a Conceptual Question"
+      },
+      {
         "command": "nlv.restartSession",
         "title": "NLV: Restart Claude Session"
       },
@@ -67,6 +71,11 @@
         "command": "nlv.translateLine",
         "key": "ctrl+alt+c",
         "when": "editorTextFocus && !editorReadonly"
+      },
+      {
+        "command": "nlv.ask",
+        "key": "ctrl+alt+q",
+        "when": "editorTextFocus"
       },
       {
         "command": "nlv.accept",

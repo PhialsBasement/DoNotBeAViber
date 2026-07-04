@@ -34,6 +34,18 @@ def build_request(
     )
 
 
+def build_question(
+    question: str,
+    language_id: str,
+    file: str | None = None,
+    line: int | None = None,
+) -> str:
+    return json.dumps(
+        {"question": question, "languageId": language_id, "file": file, "line": line},
+        ensure_ascii=False,
+    )
+
+
 def _strip_fences(text: str) -> str:
     text = text.strip()
     if text.startswith("```"):
@@ -92,5 +104,15 @@ def parse_response(result_event: dict) -> dict:
         if not isinstance(split, list) or not all(isinstance(s, str) for s in split):
             raise ProtocolError("status=rejected but 'split' missing/invalid", json.dumps(payload))
         return {"status": "rejected", "message": message, "split": split}
+    if status == "answered":
+        answer = payload.get("answer")
+        if not isinstance(answer, str) or not answer.strip():
+            raise ProtocolError("status=answered but 'answer' missing/empty", json.dumps(payload))
+        return {"status": "answered", "answer": answer}
+    if status == "refused":
+        message = payload.get("message")
+        if not isinstance(message, str) or not message.strip():
+            raise ProtocolError("status=refused but 'message' missing/empty", json.dumps(payload))
+        return {"status": "refused", "message": message}
 
     raise ProtocolError(f"unknown status: {status!r}", json.dumps(payload))

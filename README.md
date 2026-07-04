@@ -48,6 +48,12 @@ you keep reaching for.
 If your sentence describes more than one logical unit, you get the rejection plus the
 suggested split inserted as comments, each ready to translate.
 
+**Ask a conceptual question** with **Ctrl+Alt+Q** (select code first to prefill it):
+"will `all(not c.isspace() for c in text)` do the job, or `any()`?" gets you the
+semantic difference and which matches your intent — because you proposed the
+candidates. "How should I structure X" gets refused: explaining what constructs do
+is fine; deciding what you build is not.
+
 The model reads your file (read-only) to match your naming and style. It has no other
 tools: it cannot edit files, run commands, or access the network.
 

@@ -105,6 +105,14 @@ def main() -> int:
               r and r["ok"] and [m["value"] for m in r["result"]["models"]] == ["sonnet", "opus"],
               str(r))
 
+        # 6c. ask: answered and refused
+        send(13, "ask", {"question": "what does any() do", "languageId": "python"})
+        r = wait(13)
+        check("ask answered", r and r["ok"] and r["result"]["status"] == "answered", str(r))
+        send(14, "ask", {"question": "how do i build the auth flow", "languageId": "python"})
+        r = wait(14)
+        check("ask refused", r and r["ok"] and r["result"]["status"] == "refused", str(r))
+
         # 7. logEvent from the frontend
         send(9, "logEvent", {"event": "accept", "languageId": "python",
                              "sentence": "set x to one", "final": "x = 1"})

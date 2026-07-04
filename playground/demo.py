@@ -10,7 +10,9 @@ class Cart:
         for item in self.items:
             subtotal += item.price
         # mutliply discountrate by subtotal and then subtract from subtotal saving the result inside of subtotal
-        subtotal -= self.discountRate * subtotal # also guard against zeroing it if the discountrate is 0.0 with an if
+        # also guard against zeroing it if the discountrate is 0.0 with an if (was: subtotal -= self.discountRate * subtotal)
+        if self.discountRate != 0.0:
+            subtotal -= self.discountRate * subtotal
         # Calculate the tax amount by multiplying subtotal by 13.3%
         tax = subtotal * 0.133
         # Add the tax amount to subtotal

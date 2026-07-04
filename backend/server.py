@@ -88,8 +88,21 @@ def main() -> int:
         with inflight_lock:
             inflight["n"] += delta
 
-    def do_translate(rid, params: dict):
+    def do_translate(rid, params: dict, method: str = "translate"):
         try:
+            if method == "ask":
+                question = (params.get("question") or "").strip()
+                if not question:
+                    err(rid, "bad-request", "empty question")
+                    return
+                result = manager.ask(
+                    question,
+                    params.get("languageId", "plaintext"),
+                    file=params.get("file"),
+                    line=params.get("line"),
+                )
+                respond(rid, True, result)
+                return
             sentence = (params.get("sentence") or "").strip()
             if not sentence:
                 err(rid, "bad-request", "empty sentence")  # the only local input check
@@ -136,13 +149,13 @@ def main() -> int:
                 respond(None, False, {"code": "bad-request", "message": f"unparseable: {raw[:200]}"})
                 continue
 
-            if method == "translate":
+            if method in ("translate", "ask"):
                 if busy.is_set():
-                    err(rid, "busy", "a translation is already in flight")
+                    err(rid, "busy", "a request is already in flight")
                     continue
                 busy.set()
                 track(1)
-                threading.Thread(target=do_translate, args=(rid, params), daemon=True).start()
+                threading.Thread(target=do_translate, args=(rid, params, method), daemon=True).start()
             elif method == "models":
                 def do_models(rid=rid):
                     try:

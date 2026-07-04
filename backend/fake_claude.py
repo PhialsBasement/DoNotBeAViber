@@ -54,10 +54,19 @@ for line in sys.stdin:
         continue
     text = msg["message"]["content"][0]["text"]
     base = re.split(r"\n\n(?:REMINDER|YOUR PREVIOUS ANSWER)", text)[0]
+    payload = {}
     try:
-        sentence = json.loads(base)["sentence"]
-    except (json.JSONDecodeError, KeyError):
-        sentence = text
+        payload = json.loads(base)
+    except json.JSONDecodeError:
+        pass
+    if "question" in payload:
+        q = payload["question"]
+        if "how do i" in q.lower():
+            result({"status": "refused", "message": "Don't be a viber! That asks me to solve it."})
+        else:
+            result({"status": "answered", "answer": "fake conceptual answer"})
+        continue
+    sentence = payload.get("sentence", text)
     is_retry = base != text
 
     if "stubbornread" in sentence:

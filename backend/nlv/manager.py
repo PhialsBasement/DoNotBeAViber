@@ -16,7 +16,7 @@ from dataclasses import dataclass
 
 from .log import JsonlLogger
 from .prompt import RESPONSE_SCHEMA, SYSTEM_PROMPT
-from .protocol import ProtocolError, build_request, parse_response
+from .protocol import ProtocolError, build_question, build_request, parse_response
 from .session import ClaudeSession, SessionDead, SessionError
 
 JSON_REMINDER = (
@@ -205,6 +205,58 @@ class SessionManager:
                 file=file,
             )
             return resp
+
+    def ask(
+        self,
+        question: str,
+        language_id: str,
+        file: str | None = None,
+        line: int | None = None,
+    ) -> dict:
+        """Comprehension question — gated model-side to never solve the problem."""
+        self._cancelled = False
+        req = build_question(question, language_id, file=file, line=line)
+        text = req
+        respawn_left = 1
+        json_retry_left = 1
+
+        while True:
+            while True:
+                session = self._ensure()
+                try:
+                    turn = session.send(text)
+                    break
+                except SessionDead:
+                    if self._cancelled:
+                        raise Cancelled("request cancelled")
+                    if respawn_left > 0:
+                        respawn_left -= 1
+                        continue
+                    self._log("error", error="session_dead", question=question)
+                    raise
+            with self._lock:
+                self._last_used = time.monotonic()
+            try:
+                resp = parse_response(turn.result_event)
+            except ProtocolError as e:
+                if json_retry_left > 0:
+                    json_retry_left -= 1
+                    text = req + JSON_REMINDER
+                    continue
+                self._log("error", error="protocol", detail=str(e), question=question)
+                raise
+            if resp["status"] == "answered":
+                self._log("ask", question=question, answer=resp["answer"], languageId=language_id, file=file)
+                return resp
+            if resp["status"] == "refused":
+                self._log("ask_refused", question=question, message=resp["message"], languageId=language_id, file=file)
+                return resp
+            # translate-shaped response to a question: treat as malformed once
+            if json_retry_left > 0:
+                json_retry_left -= 1
+                text = req + JSON_REMINDER
+                continue
+            raise ProtocolError(f"expected answered/refused, got {resp['status']}")
 
     def list_models(self) -> list:
         """Ask the warm session which models this Claude Code install offers."""
