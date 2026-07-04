@@ -189,8 +189,14 @@ async function translateLine(context) {
   const indentMatch = lineText.match(/^\s*/);
   const indent = indentMatch ? indentMatch[0] : "";
 
-  // sentence = the line, minus any leading comment marker
-  const sentence = lineText.trim().replace(/^(#+|\/\/+|--|;+|%+)\s*/, "").trim();
+  // sentence = the line minus a leading comment marker; OR, when the line is
+  // existing code with a trailing comment, the trailing comment is the sentence
+  // (a modify-this-line request — the model returns the replacement)
+  let sentence = lineText.trim().replace(/^(#+|\/\/+|--|;+|%+)\s*/, "").trim();
+  const trailing = lineText.match(/^\s*(\S.*?)\s+(?:#+|\/\/+|--|;+)\s+(\S.*)$/);
+  if (trailing && !/^(#|\/\/|--|;|%)/.test(trailing[1])) {
+    sentence = trailing[2].trim();
+  }
   if (!sentence) {
     vscode.window.setStatusBarMessage("NLV: nothing on this line to translate", 3000);
     return; // empty line: the only local no-op check
