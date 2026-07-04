@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.4.0
+
+- Mandatory Read: an ok answer for a file-backed request is never accepted
+  unless the model actually read your file — unread answers are discarded with
+  an explicit refusal and re-asked for the life of the request
+- Referent rule closes the naming loophole: a sentence saying "discount" when
+  your file has "discountRate" gets rejected with the real name pointed out
+- Modify-this-line requests: write your sentence as a trailing comment after
+  existing code ("code  # wrap this in an if") — wrapping/guarding the
+  statement is one unit, and the replaced code is preserved in the comment
+  trail ("(was: ...)")
+- One-entry splits outlawed: if the rejection could be phrased as a single
+  doable sentence, it's accepted instead
+
 ## 0.3.0
 
 - Gate hardened: referents must be real — the model can no longer invent
