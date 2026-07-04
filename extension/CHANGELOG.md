@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.1
+
+- Ask mode answers tradeoff/should-I questions with the factors (what it does,
+  when it wins, what it costs) instead of refusing — the verdict stays yours;
+  refusals now fire only when there's nothing to teach
+- Fixed nested-JSON answers rendering raw in the notification
+
 ## 0.5.0
 
 - Ask mode (Ctrl+Alt+Q): conceptual questions about code get short plain-language
