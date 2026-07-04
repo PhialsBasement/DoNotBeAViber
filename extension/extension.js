@@ -193,9 +193,11 @@ async function translateLine(context) {
   // existing code with a trailing comment, the trailing comment is the sentence
   // (a modify-this-line request — the model returns the replacement)
   let sentence = lineText.trim().replace(/^(#+|\/\/+|--|;+|%+)\s*/, "").trim();
+  let originalCode = null; // modify-mode: the code the sentence is attached to
   const trailing = lineText.match(/^\s*(\S.*?)\s+(?:#+|\/\/+|--|;+)\s+(\S.*)$/);
   if (trailing && !/^(#|\/\/|--|;|%)/.test(trailing[1])) {
     sentence = trailing[2].trim();
+    originalCode = trailing[1].trim();
   }
   if (!sentence) {
     vscode.window.setStatusBarMessage("NLV: nothing on this line to translate", 3000);
@@ -258,6 +260,7 @@ async function translateLine(context) {
     codeBlock,
     indent,
     sentence,
+    originalCode,
     handling: String(vscode.workspace.getConfiguration("nlv").get("sentenceHandling")),
     generated: result.code,
     languageId: doc.languageId,
@@ -595,8 +598,11 @@ function activate(context) {
         const doc = vscode.workspace.textDocuments.find((d) => d.uri.toString() === payload.uriString);
         const lineRange = doc ? doc.lineAt(payload.line).range : null;
         if (lineRange) {
+          // modify-mode keeps the replaced code visible in the trail — never
+          // silently delete what the sentence was attached to
+          const was = payload.originalCode ? ` (was: ${payload.originalCode})` : "";
           edit.replace(uri, lineRange,
-            `${payload.indent}${commentPrefix(payload.languageId)} ${payload.sentence}`);
+            `${payload.indent}${commentPrefix(payload.languageId)} ${payload.sentence}${was}`);
         }
       }
       await vscode.workspace.applyEdit(edit);
