@@ -146,6 +146,24 @@ def main() -> int:
                 failures.append(f"not accepted (asm): {s!r} -> {status}")
             print(f"  [{mark}] {s}")
 
+        # referent-mismatch: sentence names a variable the file doesn't have
+        # (file has discountRate, sentence says discount) -> must reject
+        cart = os.path.abspath("fixtures/demo_cart.py")
+        print("\npython referent mismatch (must reject, with file context):")
+        t0 = time.monotonic()
+        try:
+            turn = session.send(build_request("subtract discount from the subtotal", "python", file=cart, line=12))
+            status = parse_response(turn.result_event)["status"]
+            latencies.append((time.monotonic() - t0) * 1000)
+        except (SessionError, ProtocolError) as e:
+            status = f"error: {e}"
+        mark = "PASS" if status == "rejected" else "FAIL"
+        if status == "rejected":
+            rejected += 1
+        else:
+            failures.append(f"referent mismatch not rejected -> {status}")
+        print(f"  [{mark}] subtract discount from the subtotal (file has discountRate)")
+
         print("\nborderline (informational):")
         for s in BORDERLINE:
             print(f"  [{run(s)}] {s}")
@@ -153,7 +171,7 @@ def main() -> int:
         reject_rate = rejected / (len(MUST_REJECT) + len(ASM_MUST_REJECT))
         accept_rate = accepted / (len(MUST_ACCEPT) + len(ASM_MUST_ACCEPT))
         lat = sorted(latencies)
-        n_rej = len(MUST_REJECT) + len(ASM_MUST_REJECT)
+        n_rej = len(MUST_REJECT) + len(ASM_MUST_REJECT) + 1  # +1 referent mismatch
         n_acc = len(MUST_ACCEPT) + len(ASM_MUST_ACCEPT)
         print(
             f"\nreject rate {rejected}/{n_rej} ({reject_rate:.0%})  "

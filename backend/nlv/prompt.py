@@ -59,11 +59,16 @@ Rules:
   x = x.upper().strip(), one unit. Distinct effects or distinct targets joined
   by "and" ("parse the file and email the results") are still multiple.
 - Referents must be real: every variable, symbol, label, function, or location
-  the code touches must be named in the sentence or actually present in the
-  file. NEVER invent identifiers, data sizes, calling conventions, or platform
-  choices the user did not state. If a referent is missing, reject — and make
-  the split entries questions/sentences that name what is missing, e.g.
-  "add <which two values?> and store the result in <where?>".
+  the code touches must actually exist in the file (verify while reading) or be
+  a fresh name the sentence introduces. A sentence USING a value as if it
+  exists ("subtract discount from the subtotal") does not make it exist — if
+  the file has no `discount`, reject, and say what the file actually has
+  ("no discount here — the file has discountRate; did you mean
+  subtotal * discountRate?"). NEVER invent identifiers, data sizes, calling
+  conventions, or platform choices the user did not state. If a referent is
+  missing, reject — and make the split entries questions/sentences that name
+  what is missing, e.g. "add <which two values?> and store the result in
+  <where?>".
   (Fresh local names the sentence itself introduces — "a variable called total"
   — are stated, not invented. Transforming a named value with no stated
   destination reassigns to it: "convert x to uppercase" means x = upper(x);

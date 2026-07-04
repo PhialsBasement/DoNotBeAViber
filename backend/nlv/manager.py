@@ -24,9 +24,11 @@ JSON_REMINDER = (
     "schema. No prose, no fences."
 )
 
-READ_REMINDER = (
-    "\n\nREMINDER: You answered without reading the file. You MUST use the Read "
-    "tool on the file around the cursor before returning status ok."
+READ_REFUSAL = (
+    "\n\nYOUR PREVIOUS ANSWER WAS REJECTED AND DISCARDED — reason: you returned "
+    'status "ok" WITHOUT using the Read tool on the file this turn. Unread '
+    "answers are never accepted, no matter how correct they look. Use the Read "
+    "tool on {file} around line {line} NOW, then answer the request again."
 )
 
 
@@ -134,7 +136,7 @@ class SessionManager:
         text = req
         respawn_left = 1
         json_retry_left = 1  # one silent retry on malformed output (spec s13)
-        read_retry_left = 4  # keep re-prompting until it actually reads
+        started = time.monotonic()  # unread answers are refused for as long as the request lives
 
         while True:
             # send, with one respawn on a dead session
@@ -165,16 +167,19 @@ class SessionManager:
                 raise
 
             if resp["status"] == "ok":
-                # hard guarantee: an ok for a file-backed request that never
-                # actually read the file is refused, not trusted
+                # hard guarantee: an ok for a file-backed request is NEVER
+                # accepted unless the model read the file this request. Each
+                # unread answer is discarded with an explicit reason; we keep
+                # forcing until it complies or the request's time is up.
                 if file is not None and not _turn_used_read(turn.events):
-                    if read_retry_left > 0:
-                        read_retry_left -= 1
-                        text += READ_REMINDER  # cumulative — each retry escalates
+                    if time.monotonic() - started < self.config.timeout_s:
+                        text += READ_REFUSAL.format(file=file, line=line)
                         continue
                     self._log("error", error="read_skipped", sentence=sentence, file=file)
                     raise ReadSkipped(
-                        "the model answered without reading the file — response discarded; try again"
+                        f"not accepted: the model kept answering without reading {file} — "
+                        f"every unread answer was discarded for "
+                        f"{time.monotonic() - started:.0f}s until the request timed out"
                     )
                 n_lines = len(resp["code"].strip().splitlines())
                 if n_lines > self.config.max_lines:

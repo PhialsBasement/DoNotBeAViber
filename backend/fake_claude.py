@@ -13,6 +13,7 @@ then answers each user message based on keywords in the request sentence:
 """
 
 import json
+import re
 import sys
 import time
 
@@ -52,15 +53,16 @@ for line in sys.stdin:
         sys.stdout.flush()
         continue
     text = msg["message"]["content"][0]["text"]
+    base = re.split(r"\n\n(?:REMINDER|YOUR PREVIOUS ANSWER)", text)[0]
     try:
-        sentence = json.loads(text.split("\n\nREMINDER")[0])["sentence"]
+        sentence = json.loads(base)["sentence"]
     except (json.JSONDecodeError, KeyError):
         sentence = text
-    is_retry = "REMINDER" in text
+    is_retry = base != text
 
     if "stubbornread" in sentence:
-        # only complies after three reminders have piled up
-        if text.count("REMINDER") >= 3:
+        # only complies after three explicit refusals have piled up
+        if text.count("REJECTED AND DISCARDED") >= 3:
             sys.stdout.write(json.dumps({"type": "assistant", "message": {"content": [
                 {"type": "tool_use", "name": "Read", "input": {"file_path": "x"}}]}}) + "\n")
             sys.stdout.flush()
